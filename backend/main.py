@@ -1,9 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from typing import Union
+from typing import Union , List
+from pydantic import BaseModel
+
+class User(BaseModel) :
+  id: str
+  name: str
+  email: str
 
 app = FastAPI()
+
+users: List[User] = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,7 +25,7 @@ app.add_middleware(
 # Health check endpoint
 @app.get("/")
 async def health_check():
-    return {"message": "Calculator API is running"}
+    return {"message": "API is running"}
 
 # Addition endpoint
 @app.get("/add/{num1}/{num2}")
@@ -84,6 +92,40 @@ def Number_div(num1, num2):
 def Number_sub(num1, num2):
     user_input = int(num1 - num2)
     print(f"Sub : {user_input}")
+    
+######___ User Mangement ___####    
+
+
+@app.get("/users")
+def get_users():
+    """Get all users"""
+    if not users:
+        return []
+    return users
+
+@app.post("/users")
+def add_user(user: User):
+    """Add a new user"""
+    # Check if user with same email already exists
+    for existing_user in users:
+        if existing_user.email == user.email:
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    users.append(user)
+    return {"message": "User added successfully", "user": user}
+
+@app.delete("/users/{email}")
+def delete_user(email: str):
+    """Delete a user by email"""
+    for user in users:
+        if user.email == email:
+            deleted_user = users.remove(user)
+            return {"message": f"User {email} deleted successfully", "user": deleted_user}
+
+    raise HTTPException(status_code=404, detail="User not found")
+
+      
+    
 
 if __name__ == "__main__":
     
